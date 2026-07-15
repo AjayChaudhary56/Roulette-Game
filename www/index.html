@@ -374,7 +374,7 @@
     background:
       radial-gradient(circle at 50% 40%,rgba(244,196,78,.15) 0%,rgba(244,196,78,.04) 30%,transparent 52%),
       linear-gradient(145deg,#100605 0%,#260d0b 54%,#070303 100%);
-    transition:opacity .38s ease,visibility .38s ease;animation:loadingFailSafe .4s ease 4.2s forwards;overflow:hidden;}
+    transition:opacity .38s ease,visibility .38s ease;animation:loadingFailSafe .4s ease 8.5s forwards;overflow:hidden;}
   .loading-screen::before{content:'';position:absolute;inset:0;pointer-events:none;opacity:.42;
     background:linear-gradient(115deg,transparent 0 43%,rgba(255,222,132,.055) 49%,transparent 55% 100%);animation:loadingBackdropSweep 3.4s ease-in-out infinite;}
   .loading-screen.hidden{opacity:0;visibility:hidden;pointer-events:none;}
@@ -1133,14 +1133,14 @@
       </div>
       <span class="loading-sr" id="loadingCopy">Loading Velvet Roulette</span>
     </div>
-    <div class="loading-version">Version 7.2.0</div>
+    <div class="loading-version">Version 7.4.0</div>
     <div class="loading-developer">ZephyrXDelta</div>
   </div>
   <div class="startscreen hidden" id="startScreen" aria-hidden="true">
     <div class="ss-logo"></div>
     <div class="ss-sub">Play chips &middot; European wheel</div>
     <button class="ss-play" id="playBtn" type="button" aria-label="Start Velvet Roulette">PLAY</button>
-    <div class="ss-note">No real money &middot; just for fun &middot; Android build v7.2</div>
+    <div class="ss-note">No real money &middot; just for fun &middot; Android build v7.4</div>
   </div>
 
   <div class="rotate-hint" id="rotateHint">
@@ -1478,21 +1478,37 @@
 (function(){
   "use strict";
   const byId=id=>document.getElementById(id);
-  function forceReveal(){
-    const loading=byId("loadingScreen"),start=byId("startScreen");
-    if(loading){loading.classList.add("hidden");loading.style.pointerEvents="none";setTimeout(()=>{loading.style.display="none";},420);}
-    if(start){start.classList.add("hidden");start.setAttribute("aria-hidden","true");start.style.display="none";}
-    document.documentElement.dataset.casinoVisible="true";
+
+  function revealPlayScreen(source="boot-failsafe"){
+    if(typeof window.__velvetShowPlayScreen==="function"){
+      window.__velvetShowPlayScreen(source);
+      return;
+    }
+    const loading=byId("loadingScreen");
+    const start=byId("startScreen");
+    if(loading){
+      loading.classList.add("hidden");
+      loading.style.pointerEvents="none";
+      setTimeout(()=>{loading.style.display="none";},420);
+    }
+    if(start){
+      start.classList.remove("hidden");
+      start.removeAttribute("style");
+      start.setAttribute("aria-hidden","false");
+    }
+    document.documentElement.dataset.playScreenReady="true";
+    document.documentElement.dataset.loadingExit=source;
   }
-  function requestEntry(){
-    forceReveal();
-    if(typeof window.__velvetEnterCasino==="function")window.__velvetEnterCasino("boot-failsafe");
-    else document.dispatchEvent(new CustomEvent("velvet:enter-casino"));
-  }
-  window.__velvetForceReveal=requestEntry;
+
+  window.__velvetForceReveal=revealPlayScreen;
+
   document.addEventListener("DOMContentLoaded",()=>{
-    const play=byId("playBtn");if(play)play.addEventListener("click",requestEntry,{capture:true});
-    setTimeout(()=>{const loading=byId("loadingScreen");if(loading&&getComputedStyle(loading).pointerEvents!=="none"&&getComputedStyle(loading).visibility!=="hidden")requestEntry();},4200);
+    setTimeout(()=>{
+      const loading=byId("loadingScreen");
+      if(loading&&getComputedStyle(loading).pointerEvents!=="none"&&getComputedStyle(loading).visibility!=="hidden"){
+        revealPlayScreen("boot-timeout");
+      }
+    },8500);
   },{once:true});
 })();
 
@@ -1957,7 +1973,7 @@
     currentRoundSession=Object.freeze({roundId,winningPocketIndex,winningNumber,winningColour:colorOf(winningNumber),selectedAt:Date.now(),betSnapshot,totalBet:Object.values(betSnapshot).reduce((a,b)=>a+b,0)});
     phase='spin';spinBtn.disabled=true;spinLabel.textContent='SPINNING';app.classList.add('playing');showBall=true;clearSettlementVisuals();
     const wStart=wheelAngle,wTotal=TAU*6,wheelFinal=wStart+wTotal,restAngle=wheelFinal+winningPocketIndex*SEG;
-    spinData={session:currentRoundSession,wStart,wTotal,wheelFinal,restAngle,ballExtra:TAU*9,t0:performance.now(),duration:5600,dropped:false};startRoll();requestAnimationFrame(spinFrame);
+    spinData={session:currentRoundSession,wStart,wTotal,wheelFinal,restAngle,ballExtra:TAU*9,t0:performance.now(),duration:4200,dropped:false};startRoll();requestAnimationFrame(spinFrame);
   }
   function requestMainSpin(event){if(event){event.preventDefault();event.stopPropagation();}beginSpin();}
   spinBtn.addEventListener('click',requestMainSpin);
@@ -1994,6 +2010,21 @@
   /* ========================= RESULT POPUP ========================= */
   const popup=$('popup'),popupCard=$('popupCard'),popupNum=$('popupNum'),popupTitle=$('popupTitle'),popupAmount=$('popupAmount'),popupSub=$('popupSub'),popupAction=$('popupAction'),popupX=$('popupX'),confetti=$('confetti');
   function setResultField(id,label,value){const el=$(id);if(!el)return;const lab=el.querySelector('.result-detail-label'),val=el.querySelector('.result-detail-value');if(lab)lab.textContent=label;if(val)val.textContent=value;}
+  function getResultPresentation(result){
+    const hadBet=clampInt(result&&result.totalBet)>0;
+    const winningIds=Array.isArray(result&&result.winningBetIds)?result.winningBetIds:[];
+    const hasWinningBet=winningIds.length>0;
+    if(!hadBet)return{kind:'neutral',title:'ROUND RESULT',amount:String(result.winningNumber)+' '+colorLabel(result.winningNumber),subtitle:'No bet was placed this round.',action:'CONTINUE'};
+    if(hasWinningBet){
+      const returned=clampInt(result.grossReturn);
+      const net=Number(result.netProfit)||0;
+      const subtitle=net>=0
+        ?'At least one bet won. Your returned stake and winnings were added to the balance.'
+        :'At least one bet won and returned '+fmt(returned)+' chips. The overall round result was -'+fmt(Math.abs(net))+' chips.';
+      return{kind:'win',title:'YOU WON!',amount:'+'+fmt(returned)+' CHIPS WON',subtitle,action:'COLLECT WINNINGS'};
+    }
+    return{kind:'lose',title:'BETTER LUCK NEXT TIME',amount:'NO WIN THIS ROUND',subtitle:'You lost '+fmt(result.totalBet)+' chips. Try a different bet next round.',action:'PLAY AGAIN'};
+  }
   function showPopup(result){
     popupNum.textContent=String(result.winningNumber);popupNum.setAttribute('aria-label',result.winningNumber+' '+colorLabel(result.winningNumber));
     popupNum.style.background=result.winningNumber===0?'radial-gradient(circle at 34% 27%,#27c96c,#0a7d3c 58%,#043d20)':(RED.has(result.winningNumber)?'radial-gradient(circle at 34% 27%,#ef4057,#c8102e 58%,#670616)':'radial-gradient(circle at 34% 27%,#4a4a52,#15151a 58%,#050506)');
@@ -2001,12 +2032,16 @@
     setResultField('popupWinning','Winning number',result.winningNumber+' '+colorLabel(result.winningNumber));
     setResultField('popupTotalBet','Total bet',fmt(result.totalBet)+' chips');
     setResultField('popupReturn','Returned',fmt(result.grossReturn)+' chips');
-    setResultField('popupProfit',result.netProfit>0?'Net profit':'Amount lost',(result.netProfit>0?'+':'-')+fmt(Math.abs(result.netProfit))+' chips');
+    if(result.netProfit>0)setResultField('popupProfit','Net profit','+'+fmt(result.netProfit)+' chips');
+    else if(result.netProfit<0)setResultField('popupProfit','Net round result','-'+fmt(Math.abs(result.netProfit))+' chips');
+    else setResultField('popupProfit','Net round result','0 chips');
     setResultField('popupXP','Level progress',result.levelProgressText);
     setResultField('popupBalance','Balance',fmt(result.balanceAfter)+' chips');
-    if(!hadBet){kind='neutral';popupTitle.textContent='ROUND RESULT';popupAmount.textContent=result.winningNumber+' '+colorLabel(result.winningNumber);popupSub.textContent='No bet was placed this round.';popupAction.textContent='CONTINUE';neutralSound();}
-    else if(result.netProfit>0){kind='win';popupTitle.textContent='YOU WIN!';popupAmount.textContent='+'+fmt(result.netProfit)+' CHIPS';popupSub.textContent='Your returned stake and winnings have been added to the balance.';popupAction.textContent='COLLECT WINNINGS';burstConfetti();winSound();crowdCheer();}
-    else{kind='lose';popupTitle.textContent='BETTER LUCK NEXT TIME';popupAmount.textContent='NO WIN THIS ROUND';popupSub.textContent='You lost '+fmt(result.totalBet)+' chips. Try a different bet next round.';popupAction.textContent='PLAY AGAIN';loseSound();}
+    const presentation=getResultPresentation(result);
+    kind=presentation.kind;popupTitle.textContent=presentation.title;popupAmount.textContent=presentation.amount;popupSub.textContent=presentation.subtitle;popupAction.textContent=presentation.action;
+    if(kind==='win'){burstConfetti();winSound();crowdCheer();}
+    else if(kind==='lose')loseSound();
+    else neutralSound();
     popupCard.className='popup-card '+kind;popup.classList.add('show');requestAnimationFrame(()=>popupAction.focus({preventScroll:true}));
   }
   function closePopup(){if(phase!=='result')return;popup.classList.remove('show');confetti.innerHTML='';if(levelUpQueue.length)showNextLevelUp();else startRound();}
@@ -2017,13 +2052,18 @@
   function rebuildFrequency(){freq=Object.create(null);history.forEach(item=>{const n=typeof item==='number'?item:item.number;if(Number.isInteger(n)&&n>=0&&n<=36)freq[n]=(freq[n]||0)+1;});}
   function statChip(n,count){const div=document.createElement('div');div.className='snum '+colorOf(n);div.textContent=String(n);div.title=n+' '+colorLabel(n);return div;}
   function fillStat(el,items){el.innerHTML='';items.forEach(item=>el.appendChild(statChip(item.number,item.count)));while(el.children.length<4){const e=document.createElement('div');e.className='snum empty';e.textContent='—';el.appendChild(e);}}
+  function computeHotCold(items){
+    const counts=Object.create(null),lastIndex=new Map();
+    (Array.isArray(items)?items:[]).forEach((item,index)=>{const n=typeof item==='number'?item:item&&item.number;if(Number.isInteger(n)&&n>=0&&n<=36){counts[n]=(counts[n]||0)+1;if(!lastIndex.has(n))lastIndex.set(n,index);}});
+    const all=ORDER.map(n=>({number:n,count:counts[n]||0,last:lastIndex.has(n)?lastIndex.get(n):Number.MAX_SAFE_INTEGER}));
+    return{
+      hot:all.filter(x=>x.count>0).sort((a,b)=>b.count-a.count||a.last-b.last||a.number-b.number).slice(0,4),
+      cold:all.slice().sort((a,b)=>a.count-b.count||b.last-a.last||a.number-b.number).slice(0,4)
+    };
+  }
   function updateStats(){
     if(!history.length){fillStat(hotEl,[]);fillStat(coldEl,[]);return;}
-    const lastIndex=new Map();history.forEach((item,index)=>{const n=typeof item==='number'?item:item.number;if(!lastIndex.has(n))lastIndex.set(n,index);});
-    const all=ORDER.map(n=>({number:n,count:freq[n]||0,last:lastIndex.has(n)?lastIndex.get(n):Number.MAX_SAFE_INTEGER}));
-    const hot=all.filter(x=>x.count>0).sort((a,b)=>b.count-a.count||a.last-b.last||a.number-b.number).slice(0,4);
-    const cold=all.slice().sort((a,b)=>a.count-b.count||b.last-a.last||a.number-b.number).slice(0,4);
-    fillStat(hotEl,hot);fillStat(coldEl,cold);
+    const stats=computeHotCold(history);fillStat(hotEl,stats.hot);fillStat(coldEl,stats.cold);
   }
 
   /* ========================= PROGRESSION ========================= */
@@ -2246,7 +2286,7 @@
       pendingDailySession={id:sessionId,rewardId:selected.item.id,rewardIndex:selected.index,paymentMode:mode,respinChain,state:'spinning',createdAt:Date.now(),convertedFromRespin:converted};save();
     }catch(error){try{refund();}catch(_){}updateMeta();save();$('dailyReward').textContent='The spin could not start. Your cost was restored.';console.error(error);return;}
     setDailyView('wheel');bonusSpinning=true;winningBonusIndex=-1;$('dailySpinBtn').disabled=true;$('dailyX').disabled=true;$('dailyModal').classList.add('wheel-spinning');$('dailyReward').textContent='Spinning…';updateMeta();
-    const n=FREE_SPIN_REWARDS.length,seg=TAU/n,index=pendingDailySession.rewardIndex,current=((bonusAngle%TAU)+TAU)%TAU,desired=(((-Math.PI/2-index*seg)%TAU)+TAU)%TAU,delta=((desired-current)%TAU+TAU)%TAU+TAU*6,final=bonusAngle+delta,start=bonusAngle,t0=performance.now(),duration=3900;
+    const n=FREE_SPIN_REWARDS.length,seg=TAU/n,index=pendingDailySession.rewardIndex,current=((bonusAngle%TAU)+TAU)%TAU,desired=(((-Math.PI/2-index*seg)%TAU)+TAU)%TAU,delta=((desired-current)%TAU+TAU)%TAU+TAU*6,final=bonusAngle+delta,start=bonusAngle,t0=performance.now(),duration=3000;
     let lastTick=-1;
     (function frame(now){
       const p=Math.min((now-t0)/duration,1);bonusAngle=start+(final-start)*easeOut(p);const tickIndex=Math.floor((((bonusAngle%TAU)+TAU)%TAU)/seg);if(tickIndex!==lastTick){lastTick=tickIndex;metalPing(520+Math.floor(220*(1-p)),.022);}drawBonus();
@@ -2403,6 +2443,11 @@
     ['red','black','odd','even','low','high','dozen1','dozen2','dozen3','col-bot','col-mid','col-top'].forEach(id=>expect(!isBetWinner(id,0),id+' must lose on zero'));
     const sample=calculateSettlement({winningNumber:34,totalBet:410,betSnapshot:Object.freeze({dozen3:100,'col-bot':100,red:100,black:100,'n-34':10})});
     expect(sample.grossReturn===1160,'34 sample settlement must return 1,160 chips');expect(sample.netProfit===750,'34 sample settlement net profit must be 750 chips');
+    const mixedPresentation=getResultPresentation({winningNumber:7,totalBet:300,grossReturn:200,netProfit:-100,winningBetIds:['red']});
+    expect(mixedPresentation.kind==='win'&&mixedPresentation.amount.includes('200'),'Any winning bet must show a win and the returned winning amount, even when the round net is negative');
+    const statTest=computeHotCold([{number:12},{number:7},{number:12},{number:0},{number:12},{number:7}]);
+    expect(statTest.hot[0].number===12&&statTest.hot[0].count===3,'Hot numbers must be ordered by highest frequency');
+    expect(statTest.cold.every(item=>item.count===0),'Cold numbers must prefer the least-frequent unhit pockets');
     const rewardIds=FREE_SPIN_REWARDS.filter(r=>r.type==='gems').map(r=>r.id).sort();expect(rewardIds.join(',')==='gems_10,gems_5','Daily wheel must have only 5 and 10 gem rewards');
     const g5=FREE_SPIN_REWARDS.findIndex(r=>r.id==='gems_5'),g10=FREE_SPIN_REWARDS.findIndex(r=>r.id==='gems_10');expect(Math.abs(g5-g10)===FREE_SPIN_REWARDS.length/2,'5 and 10 gem sectors must be opposite');
     const rankTest=levelInfo(100000);expect(Math.abs(rankTest.pct-.1)<1e-9&&rankTest.progressText==='100K / 1M','100K of 1M must render as 10 percent');
@@ -2434,7 +2479,25 @@
       catch(_){audio.muted=false;}
     });
   }
-  function enterCasino(source='automatic'){
+  function showPlayScreen(source='loading-complete'){
+    const loadingScreen=$('loadingScreen');
+    const startScreen=$('startScreen');
+    if(loadingScreen){
+      loadingScreen.classList.add('hidden');
+      loadingScreen.style.pointerEvents='none';
+      setTimeout(()=>{loadingScreen.style.display='none';},430);
+    }
+    if(startScreen){
+      startScreen.classList.remove('hidden');
+      startScreen.removeAttribute('style');
+      startScreen.setAttribute('aria-hidden','false');
+    }
+    document.documentElement.dataset.playScreenReady='true';
+    document.documentElement.dataset.loadingExit=source;
+  }
+  window.__velvetShowPlayScreen=showPlayScreen;
+
+  function enterCasino(source='play-button'){
     if(casinoEntered)return;
     casinoEntered=true;
     const startScreen=$('startScreen');
@@ -2451,23 +2514,23 @@
 
   function runLoadingScreen(){
     const screen=$('loadingScreen'),fill=$('loadingFill'),track=$('loadingTrack');
-    if(!screen){enterCasino('missing-loading-screen');return;}
+    if(!screen){showPlayScreen('missing-loading-screen');return;}
     let finished=false;
-    const hideAndEnter=()=>{
+    const finishLoading=()=>{
       if(finished)return;
       finished=true;
       if(fill)fill.style.width='100%';
       if(track){track.style.setProperty('--loading-progress','100%');track.setAttribute('aria-valuenow','100');}
       screen.classList.add('complete');
-      setTimeout(()=>{screen.classList.add('hidden');screen.style.pointerEvents='none';enterCasino('loading-complete');setTimeout(()=>{screen.style.display='none';},430);},260);
+      setTimeout(()=>showPlayScreen('loading-complete'),420);
     };
-    const fallback=setTimeout(hideAndEnter,3600);
-    const started=performance.now(),duration=2050;
+    const fallback=setTimeout(finishLoading,7000);
+    const started=performance.now(),duration=3200;
     function frame(now){
       const p=Math.min(1,(now-started)/duration),e=1-Math.pow(1-p,3),percent=Math.round(e*100);
       if(fill)fill.style.width=percent+'%';
       if(track){track.style.setProperty('--loading-progress',percent+'%');track.setAttribute('aria-valuenow',String(percent));}
-      if(p<1)requestAnimationFrame(frame);else{clearTimeout(fallback);hideAndEnter();}
+      if(p<1)requestAnimationFrame(frame);else{clearTimeout(fallback);finishLoading();}
     }
     requestAnimationFrame(frame);
   }
@@ -2480,7 +2543,7 @@
   }catch(error){
     console.error('Velvet Roulette startup recovered from an initialization error:',error);
     document.documentElement.dataset.bootStatus='recovered';
-    setTimeout(()=>enterCasino('startup-recovery'),1200);
+    setTimeout(()=>showPlayScreen('startup-recovery'),1200);
   }
   document.addEventListener('visibilitychange',()=>{if(document.hidden){stopRoll();save();}});
   window.addEventListener('beforeunload',save);
