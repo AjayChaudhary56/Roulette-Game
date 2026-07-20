@@ -1521,6 +1521,10 @@ body{position:fixed!important;inset:0!important;width:100%!important;height:100d
   object-fit:contain!important;object-position:center center!important;
   border-radius:inherit!important;background:#1d0b0d!important;
 }
+
+/* Web edition: Google Play diamond purchases are intentionally disabled. */
+#gemPlus,#boardBuyDiamonds,#restorePurchasesBtn,#settingsRestoreBtn,.diamond-shop-web-disabled{display:none!important;}
+.web-payment-note{margin:12px 0 0;padding:10px 12px;border:1px solid rgba(232,184,78,.28);border-radius:10px;color:#f3d37c;background:rgba(13,6,8,.48);font-size:12px;line-height:1.45;}
 </style>
 </head>
 <body>
@@ -1712,7 +1716,7 @@ body{position:fixed!important;inset:0!important;width:100%!important;height:100d
 </div>
 <div class="msg collapse"><span id="msg">Place your bets before the timer runs out.</span></div>
 
-<div class="foot collapse">Virtual gold and diamonds only · optional verified in-app purchases · no cash value or withdrawals.</div>
+<div class="foot collapse">Virtual gold and diamonds only · web purchases disabled · no cash value or withdrawals.</div>
 </div>
 </div>
 <div class="infomodal" id="infomodal">
@@ -1858,7 +1862,7 @@ body{position:fixed!important;inset:0!important;width:100%!important;height:100d
 <button aria-label="Close Velvet Treasury" class="modal-x" id="storeX" type="button">×</button>
 <div aria-hidden="true" class="store-crown">♛</div>
 <h2 id="storeTitle">Velvet Treasury</h2>
-<p class="store-subtitle">Exchange diamonds for gold, or securely purchase gold and diamonds through Google Play.</p>
+<p class="store-subtitle">Exchange earned diamonds for gold. Diamond purchases are unavailable in the web version.</p>
 <div class="store-wallet">
 <span><b id="storeGoldBalance">100K</b><small>Gold</small></span>
 <span><b id="storeGemBalance">10</b><small>Diamonds</small></span>
@@ -1884,7 +1888,7 @@ body{position:fixed!important;inset:0!important;width:100%!important;height:100d
 <button class="store-pack gold-pack" data-gem-cost="50" data-gold="1500000" type="button"><strong>1.5M Gold</strong><span>50 Diamonds</span></button>
 </div>
 </section>
-<section class="store-section">
+<section class="store-section diamond-shop-web-disabled" aria-hidden="true">
 <div class="store-section-title diamond-title"><span aria-hidden="true">◆</span><div><h3>Diamond Shop</h3><p>Prices shown in Australian dollars · final regional price is confirmed by Google Play</p></div></div>
 <div class="store-grid diamond-packages">
 <button class="store-pack diamond-pack" data-product-id="velvet.gems.10" type="button"><strong>10 Diamonds</strong><span>A$0.99</span></button>
@@ -1894,7 +1898,7 @@ body{position:fixed!important;inset:0!important;width:100%!important;height:100d
 <button class="store-pack diamond-pack" data-product-id="velvet.gems.400" type="button"><strong>400 Diamonds</strong><span>A$24.99</span></button>
 </div>
 </section>
-<div class="store-status" id="storeStatus" role="status">Checkout is handled by Google Play. Rewards are granted only after server verification; card details never enter Velvet Roulette.</div>
+<div class="store-status" id="storeStatus" role="status">Web edition: buying Diamonds is disabled. You can still use Diamonds earned through gameplay and daily rewards.</div>
 </div>
 </div>
 <div aria-hidden="true" class="player-hub-modal" id="playerHubModal">
@@ -1920,7 +1924,7 @@ body{position:fixed!important;inset:0!important;width:100%!important;height:100d
 </div>
 <div class="profile-stats"><div><span>GOLD</span><b id="profileGold">100K</b></div><div><span>DIAMONDS</span><b id="profileGems">10</b></div><div><span>ROUNDS WON</span><b id="profileWins">0</b></div><div><span>TOTAL WINNINGS</span><b id="profileWinnings">0</b></div></div>
 <div class="profile-actions"><button class="profile-primary" id="profileConnectBtn" type="button">CONNECT GOOGLE</button><button class="profile-secondary" id="restorePurchasesBtn" type="button">RESTORE PURCHASES</button><button class="profile-secondary" id="profileTreasuryBtn" type="button">OPEN TREASURY</button></div>
-<div class="profile-security-note"><span>🔒</span><p><b>Google Play handles checkout.</b><small>The app never receives your card number, expiry date or CVV. Signed-in purchases must still be verified by your future secure billing backend.</small></p></div>
+<div class="profile-security-note"><span>🌐</span><p><b>Web edition</b><small>Buying Diamonds and restoring Google Play purchases are available only in the Android app.</small></p></div>
 </section>
 <section aria-labelledby="settingsTabBtn" class="player-panel" hidden="" id="settingsPanel" role="tabpanel">
 <div class="settings-list">

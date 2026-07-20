@@ -947,6 +947,7 @@
 
 
   /* ========================= VELVET TREASURY ========================= */
+  const WEB_PURCHASES_DISABLED=!!(window.VELVET_INTEGRATION_CONFIG&&window.VELVET_INTEGRATION_CONFIG.webPurchasesDisabled);
   const GOLD_EXCHANGE_PACKAGES=Object.freeze([
     Object.freeze({gold:25000,gemCost:1}),Object.freeze({gold:130000,gemCost:5}),Object.freeze({gold:275000,gemCost:10}),Object.freeze({gold:700000,gemCost:25}),Object.freeze({gold:1500000,gemCost:50})
   ]);
@@ -1027,10 +1028,10 @@ if($('adOfferDeclineBtn'))$('adOfferDeclineBtn').addEventListener('click',()=>{$
 if($('adOfferModal'))$('adOfferModal').addEventListener('click',e=>{if(e.target===$('adOfferModal')){$('adOfferWatchBtn').style.display='';closeRewardedOffer(true);}});
 window.addEventListener('load',()=>setTimeout(initialiseRewardedAds,1800),{once:true});
 
-  function openStore(focus='',trigger=''){if(!STORE_OPEN_TRIGGERS.has(trigger))return;updateRewardedAdUI();
-    updateMeta();setStoreStatus(accountState.mode==='signed_in'?'Connecting to Google Play…':'Sign in before purchasing so verified entitlements can be linked to your player account.');
+  function openStore(focus='',trigger=''){if(!STORE_OPEN_TRIGGERS.has(trigger))return;if(WEB_PURCHASES_DISABLED&&focus==='diamonds')focus='gold';updateRewardedAdUI();
+    updateMeta();setStoreStatus(WEB_PURCHASES_DISABLED?'Web edition: Diamond purchases are disabled. Earn Diamonds through gameplay and rewards, then exchange them for Gold.':(accountState.mode==='signed_in'?'Connecting to Google Play…':'Sign in before purchasing so verified entitlements can be linked to your player account.'));
     $('storeModal').classList.add('show');$('storeModal').setAttribute('aria-hidden','false');$('storeModal').dataset.focus=focus||'';
-    if(accountState.mode==='signed_in')refreshGooglePlayProducts();
+    if(!WEB_PURCHASES_DISABLED&&accountState.mode==='signed_in')refreshGooglePlayProducts();
     requestAnimationFrame(()=>{const target=focus==='diamonds'?document.querySelector('.diamond-pack'):focus==='gold'?document.querySelector('.gold-pack'):$('storeX');if(target)target.focus({preventScroll:true});});
   }
   function closeStore(){if(storeBusy)return;$('storeModal').classList.remove('show');$('storeModal').setAttribute('aria-hidden','true');}
@@ -1073,6 +1074,7 @@ window.addEventListener('load',()=>setTimeout(initialiseRewardedAds,1800),{once:
     return verified;
   }
   async function purchaseProduct(productId){
+    if(WEB_PURCHASES_DISABLED){setStoreStatus('Diamond purchases are available only in the Android app.','error');return;}
     const product=IAP_PRODUCTS[productId];if(!product||storeBusy)return;
     if(accountState.mode!=='signed_in'){setStoreStatus('Sign in with Google before purchasing so the verified order can be linked and restored safely.','error');return;}
     const bridge=nativePurchaseBridge();
@@ -1094,6 +1096,7 @@ window.addEventListener('load',()=>setTimeout(initialiseRewardedAds,1800),{once:
     finally{storeBusy=false;document.querySelectorAll('.diamond-pack').forEach(button=>button.disabled=false);$('storeX').disabled=false;}
   }
   async function restorePurchases(){
+    if(WEB_PURCHASES_DISABLED){const status=$('profileOwnershipText');if(status)status.textContent='Google Play purchase restore is available only in the Android app.';return;}
     const status=$('playerHubStatus');if(accountState.mode!=='signed_in'){if(status)status.textContent='Connect Google before restoring purchases.';return;}if(!requireOnline(status,'Purchase restoration'))return;
     const bridge=nativePurchaseBridge();if(!bridge||typeof bridge.restorePurchases!=='function'){if(status)status.textContent='Google Play Billing restore is not configured yet. Connect your verified VelvetIAP bridge and backend first.';return;}
     if(status)status.textContent='Checking Google Play for your purchases…';
@@ -1129,7 +1132,7 @@ window.addEventListener('load',()=>setTimeout(initialiseRewardedAds,1800),{once:
       else{if(status)status.textContent='No restorable diamond purchases were found.';}
     }catch(error){console.error(error);if(status)status.textContent=String(error&&error.message||'Restore failed. Please try again.');}
   }
-  $('gemPlus').addEventListener('click',event=>{event.stopPropagation();openStore('diamonds','gem-plus');});$('balancePlus').addEventListener('click',event=>{event.stopPropagation();openStore('gold','balance-plus');});$('storeX').addEventListener('click',closeStore);$('storeModal').addEventListener('click',e=>{if(e.target===$('storeModal'))closeStore();});
+  $('gemPlus').addEventListener('click',event=>{event.stopPropagation();openStore(WEB_PURCHASES_DISABLED?'gold':'diamonds','gem-plus');});$('balancePlus').addEventListener('click',event=>{event.stopPropagation();openStore('gold','balance-plus');});$('storeX').addEventListener('click',closeStore);$('storeModal').addEventListener('click',e=>{if(e.target===$('storeModal'))closeStore();});
   document.querySelectorAll('.gold-pack').forEach(button=>button.addEventListener('click',()=>openExchangeConfirmation(Number(button.dataset.gold),Number(button.dataset.gemCost))));
   document.querySelectorAll('.diamond-pack').forEach(button=>button.addEventListener('click',()=>purchaseProduct(button.dataset.productId)));
   if($('exchangeCancelBtn'))$('exchangeCancelBtn').addEventListener('click',closeExchangeConfirmation);if($('exchangeConfirmBtn'))$('exchangeConfirmBtn').addEventListener('click',confirmGoldExchange);if($('exchangeConfirmModal'))$('exchangeConfirmModal').addEventListener('click',event=>{if(event.target===$('exchangeConfirmModal'))closeExchangeConfirmation();});
@@ -1245,7 +1248,7 @@ window.addEventListener('load',()=>setTimeout(initialiseRewardedAds,1800),{once:
   if($('saveNicknameBtn'))$('saveNicknameBtn').addEventListener('click',saveNickname);if($('copyPlayerIdBtn'))$('copyPlayerIdBtn').addEventListener('click',copyPlayerId);if($('profileNameInput'))$('profileNameInput').addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();saveNickname();}});
   document.querySelectorAll('#avatarPicker [data-avatar]').forEach(button=>button.addEventListener('click',()=>{if(accountState.mode!=='guest')return;accountState=sanitiseAccount(Object.assign({},accountState,{avatar:button.dataset.avatar}));saveAccount();$('playerHubStatus').textContent='Guest avatar updated.';}));
   if($('profileConnectBtn'))$('profileConnectBtn').addEventListener('click',()=>signInWithGoogle());if($('settingsGoogleBtn'))$('settingsGoogleBtn').addEventListener('click',()=>signInWithGoogle());if($('settingsSignOutBtn'))$('settingsSignOutBtn').addEventListener('click',signOutPlayer);
-  if($('profileTreasuryBtn'))$('profileTreasuryBtn').addEventListener('click',()=>{closePlayerHub();openStore('diamonds','profile-treasury');});if($('restorePurchasesBtn'))$('restorePurchasesBtn').addEventListener('click',restorePurchases);if($('settingsRestoreBtn'))$('settingsRestoreBtn').addEventListener('click',restorePurchases);
+  if($('profileTreasuryBtn'))$('profileTreasuryBtn').addEventListener('click',()=>{closePlayerHub();openStore(WEB_PURCHASES_DISABLED?'gold':'diamonds','profile-treasury');});if($('restorePurchasesBtn'))$('restorePurchasesBtn').addEventListener('click',restorePurchases);if($('settingsRestoreBtn'))$('settingsRestoreBtn').addEventListener('click',restorePurchases);
   if($('settingsSoundToggle'))$('settingsSoundToggle').addEventListener('click',()=>{soundOn=!soundOn;if(!soundOn)stopRoll();if($('soundBtn')){$('soundBtn').textContent=soundOn?'🔊':'🔇';$('soundBtn').setAttribute('aria-pressed',String(!soundOn));}save();applyPreferences();});if($('settingsHapticsToggle'))$('settingsHapticsToggle').addEventListener('click',()=>{hapticsOn=!hapticsOn;savePreferences();$('playerHubStatus').textContent=hapticsOn?'Haptic feedback enabled.':'Haptic feedback disabled.';});if($('settingsPerformanceToggle'))$('settingsPerformanceToggle').addEventListener('click',()=>{performanceMode=!performanceMode;savePreferences();$('playerHubStatus').textContent=performanceMode?'Performance mode enabled.':'Full visual effects enabled.';});
   if($('privacyBtn'))$('privacyBtn').addEventListener('click',()=>integrationNotice('privacyPolicyUrl'));if($('termsBtn'))$('termsBtn').addEventListener('click',()=>integrationNotice('termsUrl'));if($('supportBtn'))$('supportBtn').addEventListener('click',()=>integrationNotice('supportEmail'));if($('deletionRequestBtn'))$('deletionRequestBtn').addEventListener('click',()=>integrationNotice('accountDeletionUrl'));
   if($('settingsDeleteBtn'))$('settingsDeleteBtn').addEventListener('click',openDeleteConfirmation);if($('deleteCancelBtn'))$('deleteCancelBtn').addEventListener('click',closeDeleteConfirmation);if($('deleteConfirmBtn'))$('deleteConfirmBtn').addEventListener('click',deleteAccountProfile);if($('deleteConfirmModal'))$('deleteConfirmModal').addEventListener('click',e=>{if(e.target===$('deleteConfirmModal'))closeDeleteConfirmation();});
