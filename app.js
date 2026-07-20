@@ -714,8 +714,14 @@
   function setSwitch(id,value){const el=$(id);if(el)el.setAttribute('aria-checked',String(!!value));}
   function applyPreferences(){document.documentElement.classList.toggle('performance-mode',performanceMode);setSwitch('settingsSoundToggle',soundOn);setSwitch('settingsHapticsToggle',hapticsOn);setSwitch('settingsPerformanceToggle',performanceMode);setSwitch('settingsPauseToggle',pauseInBackground);}
   function renderAvatarFallback(element,key){if(!element)return;const safe=ALLOWED_AVATARS.has(key)?key:'user';element.dataset.avatarKey=safe;element.textContent=AVATAR_SYMBOLS[safe]||'';}
+  function upgradeGooglePhoto(url){
+    const value=String(url||'');
+    if(!/googleusercontent\.com/.test(value))return value;
+    if(/=s\d+(-c)?$/.test(value))return value.replace(/=s\d+(-c)?$/,'=s400-c');
+    return value;
+  }
   function setProfilePhoto(containerId,imgId,fallbackId,url,fallback){
-    const container=$(containerId),img=$(imgId),fallbackEl=$(fallbackId);if(!container)return;
+    const container=$(containerId),img=$(imgId),fallbackEl=$(fallbackId);if(!container)return;url=upgradeGooglePhoto(url);
     const valid=cleanPhotoUrl(url);container.classList.remove('has-photo');renderAvatarFallback(fallbackEl,fallback);
     if(!img)return;img.hidden=true;img.onload=null;img.onerror=null;
     if(!valid){img.removeAttribute('src');return;}
@@ -748,7 +754,7 @@
   }
   function nativeAuthBridge(){const p=window.Capacitor&&window.Capacitor.Plugins;return p&&p.FirebaseAuthentication&&typeof p.FirebaseAuthentication.signInWithGoogle==='function'?p.FirebaseAuthentication:null;}
   function firestoreBridge(){const p=window.Capacitor&&window.Capacitor.Plugins;return p&&p.FirebaseFirestore&&typeof p.FirebaseFirestore.setDocument==='function'?p.FirebaseFirestore:null;}
-  async function restoreNativeAuthSession(){const bridge=nativeAuthBridge();if(!bridge||typeof bridge.getCurrentUser!=='function')return false;try{const result=await bridge.getCurrentUser(),user=result&&result.user;if(!user||!user.uid)return false;const publicPlayerId=await createSignedInPlayerId(user.uid);accountState=sanitiseAccount({mode:'signed_in',id:user.uid,localId:publicPlayerId,name:user.displayName||accountState.name||'Velvet Player',email:user.email||'',avatar:accountState.avatar,photoUrl:user.photoUrl||user.photoURL||accountState.photoUrl||''});saveAccount();return true;}catch(error){console.info('No active Firebase session was restored.',error);return false;}}
+  async function restoreNativeAuthSession(){const bridge=nativeAuthBridge();if(!bridge||typeof bridge.getCurrentUser!=='function')return false;try{if(typeof bridge.reload==='function'){try{await bridge.reload();}catch(_){/* offline or no user — cached profile is fine */}}const result=await bridge.getCurrentUser(),user=result&&result.user;if(!user||!user.uid)return false;const publicPlayerId=await createSignedInPlayerId(user.uid);accountState=sanitiseAccount({mode:'signed_in',id:user.uid,localId:publicPlayerId,name:user.displayName||accountState.name||'Velvet Player',email:user.email||'',avatar:accountState.avatar,photoUrl:user.photoUrl||user.photoURL||accountState.photoUrl||''});saveAccount();return true;}catch(error){console.info('No active Firebase session was restored.',error);return false;}}
   function isOnline(){return navigator.onLine!==false;}
   function requireOnline(status,action){if(isOnline())return true;if(status)status.textContent=action+' requires an internet connection. Roulette gameplay remains available offline.';updateOfflineBadge();return false;}
   async function saveSafeFirestoreProfile(user){const firestore=firestoreBridge();if(!firestore)throw new Error('Cloud Firestore is unavailable. Run npx cap sync android and rebuild.');if(!user||!user.uid)throw new Error('A valid Firebase user is required.');const reference='users/'+user.uid,now=new Date().toISOString();let existing=null;try{const r=await firestore.getDocument({reference});existing=r&&r.snapshot&&r.snapshot.data&&typeof r.snapshot.data==='object'?r.snapshot.data:null;}catch(_){}const data=existing&&existing.createdAt?{name:user.displayName||'Velvet Player',email:user.email||'',provider:'google.com',lastLoginAt:now}:{name:user.displayName||'Velvet Player',email:user.email||'',provider:'google.com',createdAt:now,lastLoginAt:now};await firestore.setDocument({reference,data,merge:!!(existing&&existing.createdAt)});return existing&&existing.createdAt?'updated':'created';}
@@ -947,7 +953,6 @@
 
 
   /* ========================= VELVET TREASURY ========================= */
-  const WEB_PURCHASES_DISABLED=!!(window.VELVET_INTEGRATION_CONFIG&&window.VELVET_INTEGRATION_CONFIG.webPurchasesDisabled);
   const GOLD_EXCHANGE_PACKAGES=Object.freeze([
     Object.freeze({gold:25000,gemCost:1}),Object.freeze({gold:130000,gemCost:5}),Object.freeze({gold:275000,gemCost:10}),Object.freeze({gold:700000,gemCost:25}),Object.freeze({gold:1500000,gemCost:50})
   ]);
@@ -1028,10 +1033,10 @@ if($('adOfferDeclineBtn'))$('adOfferDeclineBtn').addEventListener('click',()=>{$
 if($('adOfferModal'))$('adOfferModal').addEventListener('click',e=>{if(e.target===$('adOfferModal')){$('adOfferWatchBtn').style.display='';closeRewardedOffer(true);}});
 window.addEventListener('load',()=>setTimeout(initialiseRewardedAds,1800),{once:true});
 
-  function openStore(focus='',trigger=''){if(!STORE_OPEN_TRIGGERS.has(trigger))return;if(WEB_PURCHASES_DISABLED&&focus==='diamonds')focus='gold';updateRewardedAdUI();
-    updateMeta();setStoreStatus(WEB_PURCHASES_DISABLED?'Web edition: Diamond purchases are disabled. Earn Diamonds through gameplay and rewards, then exchange them for Gold.':(accountState.mode==='signed_in'?'Connecting to Google Play…':'Sign in before purchasing so verified entitlements can be linked to your player account.'));
+  function openStore(focus='',trigger=''){if(!STORE_OPEN_TRIGGERS.has(trigger))return;updateRewardedAdUI();
+    updateMeta();setStoreStatus(accountState.mode==='signed_in'?'Connecting to Google Play…':'Sign in before purchasing so verified entitlements can be linked to your player account.');
     $('storeModal').classList.add('show');$('storeModal').setAttribute('aria-hidden','false');$('storeModal').dataset.focus=focus||'';
-    if(!WEB_PURCHASES_DISABLED&&accountState.mode==='signed_in')refreshGooglePlayProducts();
+    if(accountState.mode==='signed_in')refreshGooglePlayProducts();
     requestAnimationFrame(()=>{const target=focus==='diamonds'?document.querySelector('.diamond-pack'):focus==='gold'?document.querySelector('.gold-pack'):$('storeX');if(target)target.focus({preventScroll:true});});
   }
   function closeStore(){if(storeBusy)return;$('storeModal').classList.remove('show');$('storeModal').setAttribute('aria-hidden','true');}
@@ -1074,7 +1079,6 @@ window.addEventListener('load',()=>setTimeout(initialiseRewardedAds,1800),{once:
     return verified;
   }
   async function purchaseProduct(productId){
-    if(WEB_PURCHASES_DISABLED){setStoreStatus('Diamond purchases are available only in the Android app.','error');return;}
     const product=IAP_PRODUCTS[productId];if(!product||storeBusy)return;
     if(accountState.mode!=='signed_in'){setStoreStatus('Sign in with Google before purchasing so the verified order can be linked and restored safely.','error');return;}
     const bridge=nativePurchaseBridge();
@@ -1096,7 +1100,6 @@ window.addEventListener('load',()=>setTimeout(initialiseRewardedAds,1800),{once:
     finally{storeBusy=false;document.querySelectorAll('.diamond-pack').forEach(button=>button.disabled=false);$('storeX').disabled=false;}
   }
   async function restorePurchases(){
-    if(WEB_PURCHASES_DISABLED){const status=$('profileOwnershipText');if(status)status.textContent='Google Play purchase restore is available only in the Android app.';return;}
     const status=$('playerHubStatus');if(accountState.mode!=='signed_in'){if(status)status.textContent='Connect Google before restoring purchases.';return;}if(!requireOnline(status,'Purchase restoration'))return;
     const bridge=nativePurchaseBridge();if(!bridge||typeof bridge.restorePurchases!=='function'){if(status)status.textContent='Google Play Billing restore is not configured yet. Connect your verified VelvetIAP bridge and backend first.';return;}
     if(status)status.textContent='Checking Google Play for your purchases…';
@@ -1117,13 +1120,7 @@ window.addEventListener('load',()=>setTimeout(initialiseRewardedAds,1800),{once:
           if(transactionId.length<6)throw new Error('The verified transaction ID is invalid.');
           const applied=applyWalletTransaction({type:'IAP_DIAMONDS',currency:'gems',amount:product.amount,sourceId:transactionId,idempotencyKey:'iap:'+transactionId});
           if(applied)restored+=1;else already+=1;
-        }catch(itemError){
-          const rawError=String(itemError&&itemError.message||'Verification failed.');
-          if(/failed-precondition|not confirmed payment|refunded|cancelled|canceled/i.test(rawError)){
-            lastError='This purchase is no longer active (refunded or cancelled), so it cannot be restored.';
-          }else{lastError=rawError;}
-          failures+=1;console.error('Restore verification failed for',productId,itemError);
-        }
+        }catch(itemError){failures+=1;lastError=String(itemError&&itemError.message||'Verification failed.');console.error('Restore verification failed for',productId,itemError);}
       }
       save();updateMeta();render();
       if(restored){if(status)status.textContent=restored+' purchase'+(restored===1?'':'s')+' restored and credited.';gemWinSound();}
@@ -1132,7 +1129,7 @@ window.addEventListener('load',()=>setTimeout(initialiseRewardedAds,1800),{once:
       else{if(status)status.textContent='No restorable diamond purchases were found.';}
     }catch(error){console.error(error);if(status)status.textContent=String(error&&error.message||'Restore failed. Please try again.');}
   }
-  $('gemPlus').addEventListener('click',event=>{event.stopPropagation();openStore(WEB_PURCHASES_DISABLED?'gold':'diamonds','gem-plus');});$('balancePlus').addEventListener('click',event=>{event.stopPropagation();openStore('gold','balance-plus');});$('storeX').addEventListener('click',closeStore);$('storeModal').addEventListener('click',e=>{if(e.target===$('storeModal'))closeStore();});
+  $('gemPlus').addEventListener('click',event=>{event.stopPropagation();openStore('diamonds','gem-plus');});$('balancePlus').addEventListener('click',event=>{event.stopPropagation();openStore('gold','balance-plus');});$('storeX').addEventListener('click',closeStore);$('storeModal').addEventListener('click',e=>{if(e.target===$('storeModal'))closeStore();});
   document.querySelectorAll('.gold-pack').forEach(button=>button.addEventListener('click',()=>openExchangeConfirmation(Number(button.dataset.gold),Number(button.dataset.gemCost))));
   document.querySelectorAll('.diamond-pack').forEach(button=>button.addEventListener('click',()=>purchaseProduct(button.dataset.productId)));
   if($('exchangeCancelBtn'))$('exchangeCancelBtn').addEventListener('click',closeExchangeConfirmation);if($('exchangeConfirmBtn'))$('exchangeConfirmBtn').addEventListener('click',confirmGoldExchange);if($('exchangeConfirmModal'))$('exchangeConfirmModal').addEventListener('click',event=>{if(event.target===$('exchangeConfirmModal'))closeExchangeConfirmation();});
@@ -1248,7 +1245,7 @@ window.addEventListener('load',()=>setTimeout(initialiseRewardedAds,1800),{once:
   if($('saveNicknameBtn'))$('saveNicknameBtn').addEventListener('click',saveNickname);if($('copyPlayerIdBtn'))$('copyPlayerIdBtn').addEventListener('click',copyPlayerId);if($('profileNameInput'))$('profileNameInput').addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();saveNickname();}});
   document.querySelectorAll('#avatarPicker [data-avatar]').forEach(button=>button.addEventListener('click',()=>{if(accountState.mode!=='guest')return;accountState=sanitiseAccount(Object.assign({},accountState,{avatar:button.dataset.avatar}));saveAccount();$('playerHubStatus').textContent='Guest avatar updated.';}));
   if($('profileConnectBtn'))$('profileConnectBtn').addEventListener('click',()=>signInWithGoogle());if($('settingsGoogleBtn'))$('settingsGoogleBtn').addEventListener('click',()=>signInWithGoogle());if($('settingsSignOutBtn'))$('settingsSignOutBtn').addEventListener('click',signOutPlayer);
-  if($('profileTreasuryBtn'))$('profileTreasuryBtn').addEventListener('click',()=>{closePlayerHub();openStore(WEB_PURCHASES_DISABLED?'gold':'diamonds','profile-treasury');});if($('restorePurchasesBtn'))$('restorePurchasesBtn').addEventListener('click',restorePurchases);if($('settingsRestoreBtn'))$('settingsRestoreBtn').addEventListener('click',restorePurchases);
+  if($('profileTreasuryBtn'))$('profileTreasuryBtn').addEventListener('click',()=>{closePlayerHub();openStore('diamonds','profile-treasury');});if($('restorePurchasesBtn'))$('restorePurchasesBtn').addEventListener('click',restorePurchases);if($('settingsRestoreBtn'))$('settingsRestoreBtn').addEventListener('click',restorePurchases);
   if($('settingsSoundToggle'))$('settingsSoundToggle').addEventListener('click',()=>{soundOn=!soundOn;if(!soundOn)stopRoll();if($('soundBtn')){$('soundBtn').textContent=soundOn?'🔊':'🔇';$('soundBtn').setAttribute('aria-pressed',String(!soundOn));}save();applyPreferences();});if($('settingsHapticsToggle'))$('settingsHapticsToggle').addEventListener('click',()=>{hapticsOn=!hapticsOn;savePreferences();$('playerHubStatus').textContent=hapticsOn?'Haptic feedback enabled.':'Haptic feedback disabled.';});if($('settingsPerformanceToggle'))$('settingsPerformanceToggle').addEventListener('click',()=>{performanceMode=!performanceMode;savePreferences();$('playerHubStatus').textContent=performanceMode?'Performance mode enabled.':'Full visual effects enabled.';});
   if($('privacyBtn'))$('privacyBtn').addEventListener('click',()=>integrationNotice('privacyPolicyUrl'));if($('termsBtn'))$('termsBtn').addEventListener('click',()=>integrationNotice('termsUrl'));if($('supportBtn'))$('supportBtn').addEventListener('click',()=>integrationNotice('supportEmail'));if($('deletionRequestBtn'))$('deletionRequestBtn').addEventListener('click',()=>integrationNotice('accountDeletionUrl'));
   if($('settingsDeleteBtn'))$('settingsDeleteBtn').addEventListener('click',openDeleteConfirmation);if($('deleteCancelBtn'))$('deleteCancelBtn').addEventListener('click',closeDeleteConfirmation);if($('deleteConfirmBtn'))$('deleteConfirmBtn').addEventListener('click',deleteAccountProfile);if($('deleteConfirmModal'))$('deleteConfirmModal').addEventListener('click',e=>{if(e.target===$('deleteConfirmModal'))closeDeleteConfirmation();});
@@ -1426,7 +1423,7 @@ window.addEventListener('load',()=>setTimeout(initialiseRewardedAds,1800),{once:
     try{
       response=await fetch(FUNCTION_URL,{
         method:'POST',
-        headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+        headers:{'Content-Type':'application/json','Accept':'application/json','Authorization':'Bearer '+token},
         body:JSON.stringify({data:{
           productId:String(payload&&payload.productId||''),
           purchaseToken:String(payload&&payload.purchaseToken||''),

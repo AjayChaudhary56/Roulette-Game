@@ -1509,22 +1509,6 @@ body{position:fixed!important;inset:0!important;width:100%!important;height:100d
 
 .rewarded-ad-section{background:linear-gradient(180deg,rgba(52,27,5,.74),rgba(17,8,10,.84));border:1px solid rgba(255,206,91,.28);border-radius:14px;padding:13px;margin-bottom:12px}.rewarded-ad-card{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:13px}.rewarded-ad-icon{width:48px;height:48px;border-radius:50%;display:grid;place-items:center;font-size:24px;background:radial-gradient(circle at 35% 25%,#fff2a8,#d68a13 52%,#5f2a05);box-shadow:0 0 22px rgba(255,188,44,.2)}.rewarded-ad-copy h3{margin:0;color:#ffe39a;font-size:16px;letter-spacing:.06em}.rewarded-ad-copy p{margin:4px 0 0;color:#d9c7a5;font-size:11px;line-height:1.35}.rewarded-ad-btn{min-width:145px;border:1px solid #ffe28b;border-radius:10px;padding:11px 14px;background:linear-gradient(180deg,#ffe77c,#be700b);color:#281000;font-weight:1000;letter-spacing:.05em;cursor:pointer}.rewarded-ad-btn:disabled{opacity:.55;cursor:not-allowed}.rewarded-ad-progress{margin-top:9px;font-size:10px;color:#d8c59f;letter-spacing:.04em;text-align:right}@media(max-width:720px){.rewarded-ad-card{grid-template-columns:auto 1fr}.rewarded-ad-btn{grid-column:1/-1;width:100%}}
 .reward-streak-ladder{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-top:10px}.reward-step{min-width:46px;padding:6px 8px;border:1px solid rgba(255,220,128,.22);border-radius:8px;background:rgba(0,0,0,.24);font-size:10px;color:#cdbb98;text-align:center}.reward-step.active{border-color:#ffe28b;color:#fff0bd;box-shadow:0 0 12px rgba(255,196,53,.22)}.reward-step.done{background:rgba(150,97,12,.34);color:#ffe39a}.daily-ad-side{max-width:540px;margin:10px auto 0;padding:9px 12px;border:1px solid rgba(255,210,92,.25);border-radius:12px;background:rgba(27,12,5,.72);display:flex;align-items:center;justify-content:space-between;gap:12px}.daily-ad-side-copy{font-size:11px;color:#d9c7a5;text-align:left}.daily-ad-side-copy b{display:block;color:#ffe39a;font-size:13px}.daily-ad-side .rewarded-ad-btn{min-width:165px}.ad-offer-modal{position:fixed;inset:0;z-index:10050;background:rgba(0,0,0,.78);display:none;align-items:center;justify-content:center;padding:18px}.ad-offer-modal.show{display:flex}.ad-offer-card{width:min(440px,94vw);border:1px solid rgba(255,218,119,.48);border-radius:18px;background:linear-gradient(180deg,#351a08,#13090a 72%);box-shadow:0 24px 80px #000;padding:22px;text-align:center;color:#f8e7bd}.ad-offer-card h2{margin:0 0 8px;color:#ffe08a;letter-spacing:.06em}.ad-offer-card p{margin:6px 0;color:#d8c49d;line-height:1.45}.ad-offer-reward{font-size:30px;font-weight:1000;color:#fff0ad;margin:13px 0}.ad-offer-actions{display:flex;gap:10px;justify-content:center;margin-top:16px}.ad-offer-actions button{border-radius:10px;padding:11px 16px;font-weight:900;cursor:pointer}.ad-primary{border:1px solid #ffe28b;background:linear-gradient(180deg,#ffe77c,#bd6f0b);color:#281000}.ad-secondary{border:1px solid rgba(255,255,255,.18);background:#241517;color:#ead8b4}.ad-session-message{min-height:18px;margin-top:8px;font-size:11px;color:#d7bf8a}.ad-offer-card .reward-streak-ladder{margin-top:14px}@media(max-width:720px){.daily-ad-side{padding:8px;gap:7px}.daily-ad-side .rewarded-ad-btn{min-width:135px;padding:9px}.ad-offer-card{padding:16px}.ad-offer-actions{flex-direction:column}.ad-offer-actions button{width:100%}}
-
-/* v9.1: keep the Google profile photo centred and fully visible in the main-screen avatar frame. */
-#accountBtn{overflow:hidden!important;}
-#accountAvatarImg{
-  position:absolute!important;inset:0!important;
-  width:100%!important;height:100%!important;
-  min-width:0!important;min-height:0!important;
-  max-width:100%!important;max-height:100%!important;
-  transform:none!important;
-  object-fit:contain!important;object-position:center center!important;
-  border-radius:inherit!important;background:#1d0b0d!important;
-}
-
-/* Web edition: Google Play diamond purchases are intentionally disabled. */
-#gemPlus,#boardBuyDiamonds,#restorePurchasesBtn,#settingsRestoreBtn,.diamond-shop-web-disabled{display:none!important;}
-.web-payment-note{margin:12px 0 0;padding:10px 12px;border:1px solid rgba(232,184,78,.28);border-radius:10px;color:#f3d37c;background:rgba(13,6,8,.48);font-size:12px;line-height:1.45;}
 </style>
 </head>
 <body>
@@ -1716,7 +1700,7 @@ body{position:fixed!important;inset:0!important;width:100%!important;height:100d
 </div>
 <div class="msg collapse"><span id="msg">Place your bets before the timer runs out.</span></div>
 
-<div class="foot collapse">Virtual gold and diamonds only · web purchases disabled · no cash value or withdrawals.</div>
+<div class="foot collapse">Virtual gold and diamonds only · optional verified in-app purchases · no cash value or withdrawals.</div>
 </div>
 </div>
 <div class="infomodal" id="infomodal">
@@ -1862,7 +1846,7 @@ body{position:fixed!important;inset:0!important;width:100%!important;height:100d
 <button aria-label="Close Velvet Treasury" class="modal-x" id="storeX" type="button">×</button>
 <div aria-hidden="true" class="store-crown">♛</div>
 <h2 id="storeTitle">Velvet Treasury</h2>
-<p class="store-subtitle">Exchange earned diamonds for gold. Diamond purchases are unavailable in the web version.</p>
+<p class="store-subtitle">Exchange diamonds for gold, or securely purchase gold and diamonds through Google Play.</p>
 <div class="store-wallet">
 <span><b id="storeGoldBalance">100K</b><small>Gold</small></span>
 <span><b id="storeGemBalance">10</b><small>Diamonds</small></span>
@@ -1888,7 +1872,7 @@ body{position:fixed!important;inset:0!important;width:100%!important;height:100d
 <button class="store-pack gold-pack" data-gem-cost="50" data-gold="1500000" type="button"><strong>1.5M Gold</strong><span>50 Diamonds</span></button>
 </div>
 </section>
-<section class="store-section diamond-shop-web-disabled" aria-hidden="true">
+<section class="store-section">
 <div class="store-section-title diamond-title"><span aria-hidden="true">◆</span><div><h3>Diamond Shop</h3><p>Prices shown in Australian dollars · final regional price is confirmed by Google Play</p></div></div>
 <div class="store-grid diamond-packages">
 <button class="store-pack diamond-pack" data-product-id="velvet.gems.10" type="button"><strong>10 Diamonds</strong><span>A$0.99</span></button>
@@ -1898,7 +1882,7 @@ body{position:fixed!important;inset:0!important;width:100%!important;height:100d
 <button class="store-pack diamond-pack" data-product-id="velvet.gems.400" type="button"><strong>400 Diamonds</strong><span>A$24.99</span></button>
 </div>
 </section>
-<div class="store-status" id="storeStatus" role="status">Web edition: buying Diamonds is disabled. You can still use Diamonds earned through gameplay and daily rewards.</div>
+<div class="store-status" id="storeStatus" role="status">Checkout is handled by Google Play. Rewards are granted only after server verification; card details never enter Velvet Roulette.</div>
 </div>
 </div>
 <div aria-hidden="true" class="player-hub-modal" id="playerHubModal">
@@ -1924,7 +1908,7 @@ body{position:fixed!important;inset:0!important;width:100%!important;height:100d
 </div>
 <div class="profile-stats"><div><span>GOLD</span><b id="profileGold">100K</b></div><div><span>DIAMONDS</span><b id="profileGems">10</b></div><div><span>ROUNDS WON</span><b id="profileWins">0</b></div><div><span>TOTAL WINNINGS</span><b id="profileWinnings">0</b></div></div>
 <div class="profile-actions"><button class="profile-primary" id="profileConnectBtn" type="button">CONNECT GOOGLE</button><button class="profile-secondary" id="restorePurchasesBtn" type="button">RESTORE PURCHASES</button><button class="profile-secondary" id="profileTreasuryBtn" type="button">OPEN TREASURY</button></div>
-<div class="profile-security-note"><span>🌐</span><p><b>Web edition</b><small>Buying Diamonds and restoring Google Play purchases are available only in the Android app.</small></p></div>
+<div class="profile-security-note"><span>🔒</span><p><b>Google Play handles checkout.</b><small>The app never receives your card number, expiry date or CVV. Signed-in purchases must still be verified by your future secure billing backend.</small></p></div>
 </section>
 <section aria-labelledby="settingsTabBtn" class="player-panel" hidden="" id="settingsPanel" role="tabpanel">
 <div class="settings-list">
@@ -1975,5 +1959,6 @@ body{position:fixed!important;inset:0!important;width:100%!important;height:100d
 <script src="integration-config.js"></script>
 <script defer="" src="boot.js"></script>
 <script defer="" src="app.js"></script>
+<script defer="" src="web-mode.js"></script>
 </body>
 </html>
